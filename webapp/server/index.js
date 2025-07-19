@@ -14,13 +14,43 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Database connection
+// Database connections
 const dbPath = path.join(__dirname, '../../data/premier_league_2025_26.db');
+const oddsDbPath = path.join(__dirname, '../../data/premier_league_odds.db');
 const db = new sqlite3.Database(dbPath);
+const oddsDb = new sqlite3.Database(oddsDbPath);
+
+// Team name mapping function to convert from fixtures DB names to odds DB names
+const mapTeamName = (fixtureTeamName) => {
+  const teamMappings = {
+    'Liverpool FC': 'Liverpool',
+    'AFC Bournemouth': 'Bournemouth',
+    'Aston Villa FC': 'Aston Villa',
+    'Newcastle United FC': 'Newcastle',
+    'Brighton & Hove Albion FC': 'Brighton',
+    'Fulham FC': 'Fulham',
+    'Nottingham Forest FC': 'Nottm Forest',
+    'Brentford FC': 'Brentford',
+    'Sunderland AFC': 'Sunderland',
+    'West Ham United FC': 'West Ham',
+    'Chelsea FC': 'Chelsea',
+    'Crystal Palace FC': 'Crystal Palace',
+    'Tottenham Hotspur FC': 'Tottenham',
+    'Burnley FC': 'Burnley',
+    'Manchester United FC': 'Man Utd',
+    'Arsenal FC': 'Arsenal',
+    'Leeds United FC': 'Leeds',
+    'Everton FC': 'Everton',
+    'Wolverhampton Wanderers FC': 'Wolves',
+    'Manchester City FC': 'Man City'
+  };
+  
+  return teamMappings[fixtureTeamName] || fixtureTeamName;
+};
 
 // API Routes
 
-// Get all fixtures for a specific matchday
+// Get all fixtures for a specific matchday with odds
 app.get('/api/fixtures/matchday/:matchday', (req, res) => {
   const matchday = parseInt(req.params.matchday);
   
@@ -43,16 +73,168 @@ app.get('/api/fixtures/matchday/:matchday', (req, res) => {
     ORDER BY f.date, f.time
   `;
   
-  db.all(query, [matchday], (err, rows) => {
+  db.all(query, [matchday], (err, fixtures) => {
     if (err) {
       console.error('Database error:', err);
       res.status(500).json({ error: 'Database error' });
       return;
     }
     
-    res.json({
-      matchday,
-      fixtures: rows
+    // Get odds for each fixture
+    const fixturesWithOdds = [];
+    let processed = 0;
+    
+    if (fixtures.length === 0) {
+      res.json({ matchday, fixtures: [] });
+      return;
+    }
+    
+    fixtures.forEach(fixture => {
+      // Map team names to odds database format
+      const mappedHomeName = mapTeamName(fixture.home_team);
+      const mappedAwayName = mapTeamName(fixture.away_team);
+      
+      // Query odds database for latest odds for this match
+      const oddsQuery = `
+        SELECT 
+          o.runner_type,
+          o.best_back_price,
+          o.request_time
+        FROM matches m
+        JOIN odds o ON m.id = o.match_id
+        WHERE m.home_team = ? AND m.away_team = ?
+        AND o.request_time = (
+          SELECT MAX(o2.request_time) 
+          FROM odds o2 
+          WHERE o2.match_id = o.match_id
+        )
+        ORDER BY o.runner_type
+      `;
+      
+      oddsDb.all(oddsQuery, [mappedHomeName, mappedAwayName], (oddsErr, oddsRows) => {
+        processed++;
+        
+        const fixtureWithOdds = { ...fixture };
+        
+        if (!oddsErr && oddsRows.length > 0) {
+          // Parse odds data
+          const odds = {};
+          oddsRows.forEach(row => {
+            switch (row.runner_type) {
+              case 'Home win':
+                odds.home_win = row.best_back_price;
+                break;
+              case 'Away win':
+                odds.away_win = row.best_back_price;
+                break;
+              case 'Draw':
+                odds.draw = row.best_back_price;
+                break;
+            }
+          });
+          fixtureWithOdds.odds = odds;
+        }
+        
+        fixturesWithOdds.push(fixtureWithOdds);
+        
+        // If all fixtures processed, send response
+        if (processed === fixtures.length) {
+          // Sort by original order
+          fixturesWithOdds.sort((a, b) => {
+            if (a.date === b.date) {
+              return a.time.localeCompare(b.time);
+            }
+            return a.date.localeCompare(b.date);
+          });
+          
+          res.json({
+            matchday,
+            fixtures: fixturesWithOdds
+          });
+        }
+      });
+    });
+  });
+});
+
+// Get a specific fixture by match_id
+app.get('/api/fixture/:matchId', (req, res) => {
+  const matchId = parseInt(req.params.matchId);
+  
+  const query = `
+    SELECT 
+      f.match_id,
+      f.matchday,
+      f.date,
+      f.time,
+      f.home_team,
+      f.away_team,
+      f.home_team_id,
+      f.away_team_id,
+      f.status,
+      f.venue,
+      f.home_score,
+      f.away_score
+    FROM fixtures f
+    WHERE f.match_id = ?
+  `;
+  
+  db.get(query, [matchId], (err, fixture) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
+    
+    if (!fixture) {
+      res.status(404).json({ error: 'Fixture not found' });
+      return;
+    }
+    
+    // Get odds for this fixture
+    const mappedHomeName = mapTeamName(fixture.home_team);
+    const mappedAwayName = mapTeamName(fixture.away_team);
+    
+    const oddsQuery = `
+      SELECT 
+        o.runner_type,
+        o.best_back_price,
+        o.request_time
+      FROM matches m
+      JOIN odds o ON m.id = o.match_id
+      WHERE m.home_team = ? AND m.away_team = ?
+      AND o.request_time = (
+        SELECT MAX(o2.request_time) 
+        FROM odds o2 
+        WHERE o2.match_id = o.match_id
+      )
+      ORDER BY o.runner_type
+    `;
+    
+    oddsDb.all(oddsQuery, [mappedHomeName, mappedAwayName], (oddsErr, oddsRows) => {
+      const fixtureWithOdds = { ...fixture };
+      
+      if (!oddsErr && oddsRows.length > 0) {
+        const odds = {};
+        oddsRows.forEach(row => {
+          switch (row.runner_type) {
+            case 'Home win':
+              odds.home_win = row.best_back_price;
+              break;
+            case 'Away win':
+              odds.away_win = row.best_back_price;
+              break;
+            case 'Draw':
+              odds.draw = row.best_back_price;
+              break;
+          }
+        });
+        fixtureWithOdds.odds = odds;
+      }
+      
+      res.json({
+        fixture: fixtureWithOdds
+      });
     });
   });
 });
@@ -166,10 +348,18 @@ process.on('SIGINT', () => {
   console.log('📴 Shutting down server...');
   db.close((err) => {
     if (err) {
-      console.error('Error closing database:', err);
+      console.error('Error closing fixtures database:', err);
     } else {
-      console.log('✅ Database connection closed');
+      console.log('✅ Fixtures database connection closed');
     }
-    process.exit(0);
+    
+    oddsDb.close((oddsErr) => {
+      if (oddsErr) {
+        console.error('Error closing odds database:', oddsErr);
+      } else {
+        console.log('✅ Odds database connection closed');
+      }
+      process.exit(0);
+    });
   });
 });

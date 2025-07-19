@@ -1,7 +1,13 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getTeamCrest } from '../utils/teamCrestMapping'
 
 const FixtureTable = ({ fixtures }) => {
+  const navigate = useNavigate()
+
+  const handleFixtureClick = (matchId) => {
+    navigate(`/fixture/${matchId}`)
+  }
   const formatDate = (dateString, timeString) => {
     if (!dateString) return 'TBD'
     
@@ -101,11 +107,18 @@ const FixtureTable = ({ fixtures }) => {
             <th></th>
             <th>Away Team</th>
             <th>Status</th>
+            <th className="odds-header">1</th>
+            <th className="odds-header">X</th>
+            <th className="odds-header">2</th>
           </tr>
         </thead>
         <tbody>
           {fixtures.map(fixture => (
-            <tr key={fixture.match_id} className="fixture-row">
+            <tr 
+              key={fixture.match_id} 
+              className="fixture-row clickable-row"
+              onClick={() => handleFixtureClick(fixture.match_id)}
+            >
               <td className="date-cell">
                 {formatDate(fixture.date, fixture.time)}
               </td>
@@ -155,6 +168,15 @@ const FixtureTable = ({ fixtures }) => {
                 <span className={`status-badge ${getStatusClass(fixture.status)}`}>
                   {getStatusText(fixture.status)}
                 </span>
+              </td>
+              <td className="odds-cell home-odds-cell">
+                {fixture.odds?.home_win ? parseFloat(fixture.odds.home_win).toFixed(2) : '—'}
+              </td>
+              <td className="odds-cell draw-odds-cell">
+                {fixture.odds?.draw ? parseFloat(fixture.odds.draw).toFixed(2) : '—'}
+              </td>
+              <td className="odds-cell away-odds-cell">
+                {fixture.odds?.away_win ? parseFloat(fixture.odds.away_win).toFixed(2) : '—'}
               </td>
             </tr>
           ))}

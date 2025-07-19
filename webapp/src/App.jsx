@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import MatchdaySelector from './components/MatchdaySelector'
 import FixtureList from './components/FixtureList'
+import FixtureDetail from './components/FixtureDetail'
 import Header from './components/Header'
 import LoadingSpinner from './components/LoadingSpinner'
 import ErrorMessage from './components/ErrorMessage'
 
 function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/fixture/:matchId" element={<FixtureDetail />} />
+    </Routes>
+  )
+}
+
+function HomePage() {
   const [matchdays, setMatchdays] = useState([])
   const [currentMatchday, setCurrentMatchday] = useState(1)
   const [fixtures, setFixtures] = useState([])

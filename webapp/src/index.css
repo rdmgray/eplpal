@@ -36,7 +36,7 @@ body {
 }
 
 .container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   min-height: 100vh;
@@ -363,6 +363,14 @@ body {
   background-color: rgba(0, 0, 0, 0.02);
 }
 
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background-color: rgba(0, 122, 255, 0.05) !important;
+}
+
 .fixture-row:last-child td {
   border-bottom: none;
 }
@@ -384,7 +392,7 @@ body {
 .team-cell {
   font-weight: 500;
   color: var(--text-primary);
-  min-width: 180px;
+  min-width: 160px;
 }
 
 .team-with-crest {
@@ -431,8 +439,41 @@ body {
 }
 
 .status-cell {
-  width: 100px;
+  width: 90px;
   text-align: center;
+}
+
+/* Odds column styles */
+.odds-header {
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-primary);
+  width: 60px;
+  min-width: 60px;
+}
+
+.odds-cell {
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  width: 60px;
+  min-width: 60px;
+  padding: 8px 4px;
+}
+
+.home-odds-cell {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.draw-odds-cell {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.away-odds-cell {
+  background: #e8f5e8;
+  color: #2e7d32;
 }
 
 .status-badge {
@@ -474,19 +515,19 @@ body {
   
   .fixtures-table th,
   .fixtures-table td {
-    padding: 8px 12px;
+    padding: 6px 8px;
   }
   
   .date-cell {
-    width: 80px;
+    width: 70px;
   }
   
   .time-cell {
-    width: 60px;
+    width: 50px;
   }
   
   .team-cell {
-    min-width: 140px;
+    min-width: 120px;
   }
   
   .team-crest {
@@ -495,22 +536,35 @@ body {
   }
   
   .status-cell {
-    width: 80px;
+    width: 70px;
+  }
+  
+  .odds-cell {
+    width: 45px;
+    min-width: 45px;
+    font-size: 11px;
+    padding: 6px 2px;
+  }
+  
+  .odds-header {
+    width: 45px;
+    min-width: 45px;
+    font-size: 11px;
   }
 }
 
 @media (max-width: 480px) {
   .fixtures-table {
-    font-size: 11px;
+    font-size: 10px;
   }
   
   .fixtures-table th,
   .fixtures-table td {
-    padding: 6px 8px;
+    padding: 4px 6px;
   }
   
   .team-cell {
-    min-width: 120px;
+    min-width: 100px;
   }
   
   .team-crest {
@@ -519,12 +573,37 @@ body {
   }
   
   .team-with-crest {
-    gap: 6px;
+    gap: 4px;
   }
   
   .status-badge {
-    font-size: 9px;
-    padding: 2px 6px;
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+  
+  .odds-cell {
+    width: 35px;
+    min-width: 35px;
+    font-size: 10px;
+    padding: 4px 1px;
+  }
+  
+  .odds-header {
+    width: 35px;
+    min-width: 35px;
+    font-size: 10px;
+  }
+  
+  .date-cell {
+    width: 60px;
+  }
+  
+  .time-cell {
+    width: 40px;
+  }
+  
+  .status-cell {
+    width: 60px;
   }
 }
 
@@ -548,4 +627,373 @@ body {
     background-color: #581c87;
     color: #c084fc;
   }
+  
+  .home-odds-cell {
+    background: #1e3a8a;
+    color: #60a5fa;
+  }
+  
+  .draw-odds-cell {
+    background: #92400e;
+    color: #fbbf24;
+  }
+  
+  .away-odds-cell {
+    background: #14532d;
+    color: #4ade80;
+  }
 }
+
+/* Fixture Detail Page Styles */
+.back-button {
+  background: var(--card-background);
+  border: 1px solid var(--separator-color);
+  border-radius: var(--border-radius-small);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+  text-decoration: none;
+}
+
+.back-button:hover {
+  background-color: var(--background-color);
+  transform: translateX(-2px);
+}
+
+.fixture-detail-card {
+  background: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.fixture-detail-header {
+  background: var(--background-color);
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid var(--separator-color);
+}
+
+.fixture-detail-matchday {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.fixture-detail-date {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.fixture-detail-time {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.fixture-detail-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 20px;
+  gap: 20px;
+}
+
+.fixture-detail-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fixture-detail-crest {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.fixture-detail-team-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.fixture-detail-vs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 80px;
+}
+
+.vs-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.fixture-detail-status {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.fixture-detail-status.scheduled {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.fixture-detail-status.live {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.fixture-detail-status.finished {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.fixture-detail-venue {
+  text-align: center;
+  padding: 16px 20px;
+  font-size: 16px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--separator-color);
+  background: var(--background-color);
+}
+
+.fixture-detail-odds {
+  padding: 20px;
+  border-top: 1px solid var(--separator-color);
+}
+
+.fixture-detail-odds-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.fixture-detail-odds-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.fixture-detail-odds-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.fixture-detail-odds-item {
+  background: var(--background-color);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  text-align: center;
+  border: 2px solid var(--separator-color);
+  transition: all 0.2s ease;
+}
+
+.fixture-detail-odds-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.fixture-detail-odds-item .odds-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.fixture-detail-odds-item .odds-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fixture-detail-odds-item.home-win {
+  border-color: #bbdefb;
+  background: #e3f2fd;
+}
+
+.fixture-detail-odds-item.home-win .odds-value {
+  color: #1976d2;
+}
+
+.fixture-detail-odds-item.draw {
+  border-color: #ffcc02;
+  background: #fff3e0;
+}
+
+.fixture-detail-odds-item.draw .odds-value {
+  color: #f57c00;
+}
+
+.fixture-detail-odds-item.away-win {
+  border-color: #c8e6c9;
+  background: #e8f5e8;
+}
+
+.fixture-detail-odds-item.away-win .odds-value {
+  color: #2e7d32;
+}
+
+/* Responsive fixture detail */
+@media (max-width: 768px) {
+  .fixture-detail-teams {
+    flex-direction: column;
+    gap: 30px;
+    padding: 30px 20px;
+  }
+  
+  .fixture-detail-vs {
+    order: 2;
+    min-width: auto;
+  }
+  
+  .fixture-detail-team.home-team {
+    order: 1;
+  }
+  
+  .fixture-detail-team.away-team {
+    order: 3;
+  }
+  
+  .fixture-detail-crest {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .fixture-detail-team-name {
+    font-size: 18px;
+  }
+  
+  .fixture-detail-odds-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .fixture-detail-odds-item {
+    padding: 16px;
+  }
+  
+  .fixture-detail-odds-item .odds-value {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fixture-detail-header {
+    padding: 16px;
+  }
+  
+  .fixture-detail-date {
+    font-size: 20px;
+  }
+  
+  .fixture-detail-time {
+    font-size: 16px;
+  }
+  
+  .fixture-detail-teams {
+    padding: 20px 16px;
+  }
+  
+  .fixture-detail-crest {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .fixture-detail-team-name {
+    font-size: 16px;
+  }
+  
+  .fixture-detail-odds {
+    padding: 16px;
+  }
+  
+  .fixture-detail-odds-item {
+    padding: 12px;
+  }
+  
+  .fixture-detail-odds-item .odds-value {
+    font-size: 18px;
+  }
+}
+
+/* Dark mode fixture detail */
+@media (prefers-color-scheme: dark) {
+  .back-button:hover {
+    background-color: #2c2c2e;
+  }
+  
+  .clickable-row:hover {
+    background-color: rgba(0, 122, 255, 0.1) !important;
+  }
+  
+  .fixture-detail-status.scheduled {
+    background-color: #1e3a8a;
+    color: #60a5fa;
+  }
+  
+  .fixture-detail-status.live {
+    background-color: #14532d;
+    color: #4ade80;
+  }
+  
+  .fixture-detail-status.finished {
+    background-color: #581c87;
+    color: #c084fc;
+  }
+  
+  .fixture-detail-odds-item.home-win {
+    border-color: #1e40af;
+    background: #1e3a8a;
+  }
+  
+  .fixture-detail-odds-item.home-win .odds-value {
+    color: #60a5fa;
+  }
+  
+  .fixture-detail-odds-item.draw {
+    border-color: #b45309;
+    background: #92400e;
+  }
+  
+  .fixture-detail-odds-item.draw .odds-value {
+    color: #fbbf24;
+  }
+  
+  .fixture-detail-odds-item.away-win {
+    border-color: #166534;
+    background: #14532d;
+  }
+  
+  .fixture-detail-odds-item.away-win .odds-value {
+    color: #4ade80;
+  }
+}
+
