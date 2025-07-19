@@ -39,6 +39,7 @@ def init_database(db_path: str):
             match_id INTEGER NOT NULL,
             selection_id INTEGER NOT NULL,
             runner_name TEXT NOT NULL,
+            runner_type TEXT NOT NULL,
             best_back_price REAL,
             best_back_size REAL,
             best_lay_price REAL,
@@ -67,7 +68,7 @@ def init_database(db_path: str):
 
 def main():
     """Main function to initialize the database"""
-    db_path = "/Users/rdmgray/Projects/Makelele/data/premier_league_odds.db"
+    db_path = "/Users/rdmgray/Projects/EPLpal/data/premier_league_odds.db"
     
     try:
         init_database(db_path)

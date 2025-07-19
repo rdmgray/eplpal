@@ -48,7 +48,7 @@ class BetfairClient:
         
         login_headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Application': 'makelele'
+            'X-Application': 'eplpal'
         }
         
         login_url = "https://identitysso-cert.betfair.com/api/certlogin"
@@ -220,7 +220,14 @@ class OddsDatabase:
         conn.close()
         return match_id
     
-    def insert_odds(self, match_id: int, runner_data: Dict[str, Any], runner_name: str, request_time: str):
+    def insert_odds(
+        self,
+        match_id: int,
+        runner_data: Dict[str, Any],
+        runner_name: str,
+        runner_type: str,
+        request_time: str
+        ):
         """Insert odds data for a runner"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -242,13 +249,14 @@ class OddsDatabase:
         
         cursor.execute('''
             INSERT INTO odds (
-                match_id, selection_id, runner_name, best_back_price, best_back_size,
+                match_id, selection_id, runner_name, runner_type, best_back_price, best_back_size,
                 best_lay_price, best_lay_size, last_price_traded, total_matched, status, request_time
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             match_id,
             runner_data['selectionId'],
             runner_name,
+            runner_type,
             best_back_price,
             best_back_size,
             best_lay_price,
@@ -273,7 +281,7 @@ def parse_match_name(match_name: str) -> tuple[str, str]:
 def main():
     """Main function to collect and store Premier League odds"""
     # Initialize database
-    db_path = "/Users/rdmgray/Projects/Makelele/data/premier_league_odds.db"
+    db_path = "/Users/rdmgray/Projects/EPLpal/data/premier_league_odds.db"
     
     try:
         db = OddsDatabase(db_path)
@@ -353,8 +361,13 @@ def main():
             for runner in market_book['runners']:
                 selection_id = runner['selectionId']
                 runner_name = runner_names.get(selection_id, f"Unknown_{selection_id}")
-                
-                db.insert_odds(match_id, runner, runner_name, request_time)
+                if runner_name == home_team:
+                    runner_type = "Home win"
+                elif runner_name == away_team:
+                    runner_type = "Away win"
+                else:
+                    runner_type = "Draw"
+                db.insert_odds(match_id, runner, runner_name, runner_type, request_time)
         
         print(f"\nOdds collection complete! Data saved to {db_path}")
         

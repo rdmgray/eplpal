@@ -15,7 +15,7 @@ This script collects Premier League match odds from the Betfair API and stores t
 ## Usage
 
 ```bash
-cd /Users/rdmgray/Projects/Makelele && source venv/bin/activate && cd data
+cd /Users/rdmgray/Projects/EPLpal && source venv/bin/activate && cd data
 python betfair_odds_collector.py
 ```
 
