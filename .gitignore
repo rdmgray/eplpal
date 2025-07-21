@@ -65,4 +65,5 @@ logs/
 *.log
 
 # Claude files
-.claude
+CLAUDE.md
+.claude/
