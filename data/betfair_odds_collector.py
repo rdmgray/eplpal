@@ -64,7 +64,10 @@ class BetfairClient:
         )
         
         if response.status_code == 200:
-            return response.json()["sessionToken"]
+            try:
+                return response.json()["sessionToken"]
+            except KeyError:
+                raise Exception("Authentication failed - are you able to connect to BetFair from your location?")
         else:
             raise Exception(f"Login failed: {response.text}")
     
@@ -195,7 +198,7 @@ class OddsDatabase:
         
         # Check if database exists
         if not os.path.exists(db_path):
-            raise FileNotFoundError(f"Database not found at {db_path}. Please run init_betfair_db.py first.")
+            raise FileNotFoundError(f"Database not found at {db_path}. Please run init_dbs.py first.")
     
     def insert_match(self, event_id: str, market_id: str, home_team: str, away_team: str, match_date: str) -> int:
         """Insert a match record if it doesn't exist, or return existing match ID"""
@@ -288,7 +291,7 @@ def main():
         print(f"✅ Connected to database: {db_path}")
     except FileNotFoundError as e:
         print(f"❌ {e}")
-        print("Run: python init_betfair_db.py")
+        print("Run: python init_dbs.py")
         return
     
     # Initialize Betfair client

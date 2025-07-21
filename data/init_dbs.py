@@ -4,7 +4,7 @@ import os
 import sqlite3
 from datetime import datetime
 
-def init_database(db_path: str):
+def init_odds_database(db_path: str):
     """Initialize the Betfair odds database with proper schema"""
     print(f"Initializing database at: {db_path}")
     
@@ -66,18 +66,55 @@ def init_database(db_path: str):
     print("Database initialization complete!")
     print(f"Database created at: {db_path}")
 
+def init_bets_database(db_path: str):
+    """Initialize the bettor positions database with proper schema"""
+    print(f"Initializing database at: {db_path}")
+    
+    # Remove existing database if it exists
+    if os.path.exists(db_path):
+        print("Removing existing database...")
+        os.remove(db_path)
+    
+    # Create new database
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    print("Creating bets table...")
+    # Create bets table
+    cursor.execute('''
+        CREATE TABLE bets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bettor_id INTEGER NOT NULL,
+            match_id INTEGER NOT NULL,
+            selection_id INTEGER NOT NULL,
+            runner_name TEXT NOT NULL,
+            runner_type TEXT NOT NULL,
+            back_or_lay TEXT NOT NULL,
+            bet_amount REAL,
+            selection_odds REAL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status TEXT NOT NULL,
+            runner_outcome TEXT,
+            bet_won BOOLEAN,
+            returned_amount REAL
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    
+    print("Database initialization complete!")
+    print(f"Database created at: {db_path}")
+
 def main():
     """Main function to initialize the database"""
-    db_path = "/Users/rdmgray/Projects/EPLpal/data/premier_league_odds.db"
+    odds_db_path = "/Users/rdmgray/Projects/EPLpal/data/premier_league_odds.db"
+    bets_db_path = "/Users/rdmgray/Projects/EPLpal/data/sim_bets.db"
     
     try:
-        init_database(db_path)
-        print("\n✅ Database successfully initialized!")
-        print("\nDatabase schema:")
-        print("- matches table: stores match information")
-        print("- odds table: stores odds data with historical tracking")
-        print("- indexes: created for optimal query performance")
-        
+        init_odds_database(odds_db_path)
+        print("\n Odds database successfully initialized!")
+        init_bets_database(bets_db_path)
+        print("\n Bets database successfully initialized!")
     except Exception as e:
         print(f"❌ Error initializing database: {e}")
         return 1
