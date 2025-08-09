@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import MatchdaySelector from './components/MatchdaySelector'
 import FixtureList from './components/FixtureList'
 import FixtureDetail from './components/FixtureDetail'
+import BetsPage from './components/BetsPage'
 import Header from './components/Header'
 import LoadingSpinner from './components/LoadingSpinner'
 import ErrorMessage from './components/ErrorMessage'
@@ -12,6 +13,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/fixture/:matchId" element={<FixtureDetail />} />
+      <Route path="/bets" element={<BetsPage />} />
     </Routes>
   )
 }

@@ -12,6 +12,9 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 import dotenv
+from contextlib import closing
+
+from utils import team_name_mapping_sl
 
 # Add parent directory to path for virtual environment
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -200,30 +203,38 @@ class OddsDatabase:
         away_team: str,
         match_date: str,
     ) -> int:
-        """Insert a match record if it doesn't exist, or return existing match ID"""
+        """Get match ID and insert a match record if it doesn't exist."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Check if match already exists
+        # Get match id from fixtures table
+        query_home_team = team_name_mapping_sl[home_team]
+        query_away_team = team_name_mapping_sl[away_team]
+
+        with closing(sqlite3.connect("/Users/rdmgray/Projects/EPLpal/data/premier_league_2025_26.db")) as fixtures_db_conn:
+            with closing(fixtures_db_conn.cursor()) as fixtures_cursor:
+                fixtures_cursor.execute('''
+                            select match_id from fixtures
+                            where home_team = ?
+                            and away_team = ?
+                ''', (query_home_team, query_away_team))
+                match_id = fixtures_cursor.fetchone()
+            fixtures_db_conn.commit()
+
         cursor.execute("SELECT id FROM matches WHERE event_id = ?", (event_id,))
         existing_match = cursor.fetchone()
-
-        if existing_match:
-            match_id = existing_match[0]
-        else:
-            # Insert new match
+        if not existing_match:
             cursor.execute(
                 """
-                INSERT INTO matches (event_id, market_id, home_team, away_team, match_date)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO matches (id, event_id, market_id, home_team, away_team, match_date)
+                VALUES (?, ?, ?, ?, ?, ?)
             """,
-                (event_id, market_id, home_team, away_team, match_date),
+                (match_id[0], event_id, market_id, home_team, away_team, match_date),
             )
-            match_id = cursor.lastrowid
             conn.commit()
 
         conn.close()
-        return match_id
+        return match_id[0]
 
     def insert_odds(
         self,

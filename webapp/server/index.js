@@ -17,8 +17,10 @@ app.use(express.json());
 // Database connections
 const dbPath = path.join(__dirname, '../../data/premier_league_2025_26.db');
 const oddsDbPath = path.join(__dirname, '../../data/premier_league_odds.db');
+const betsDbPath = path.join(__dirname, '../../data/sim_bets.db');
 const db = new sqlite3.Database(dbPath);
 const oddsDb = new sqlite3.Database(oddsDbPath);
+const betsDb = new sqlite3.Database(betsDbPath);
 
 // Team name mapping function to convert from fixtures DB names to odds DB names
 const mapTeamName = (fixtureTeamName) => {
@@ -323,6 +325,134 @@ app.get('/api/fixtures/team/:teamId', (req, res) => {
   });
 });
 
+// Get all available bettor IDs
+app.get('/api/bettors', (req, res) => {
+  const query = `
+    SELECT DISTINCT bettor_id
+    FROM bets
+    ORDER BY bettor_id
+  `;
+  
+  betsDb.all(query, [], (err, rows) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
+    
+    const bettorIds = rows.map(row => row.bettor_id);
+    res.json({ bettors: bettorIds });
+  });
+});
+
+// Get all available bet statuses
+app.get('/api/bet-statuses', (req, res) => {
+  const query = `
+    SELECT DISTINCT status
+    FROM bets
+    ORDER BY status
+  `;
+  
+  betsDb.all(query, [], (err, rows) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
+    
+    const statuses = rows.map(row => row.status);
+    res.json({ statuses: ['ALL', ...statuses] });
+  });
+});
+
+// Get bets for a specific bettor with optional status filter
+app.get('/api/bets/:bettorId', (req, res) => {
+  const bettorId = parseInt(req.params.bettorId);
+  const status = req.query.status || 'ALL'; // Default to ALL if no status specified
+  
+  let query = `
+    SELECT 
+      b.id,
+      b.bettor_id,
+      b.match_id,
+      b.selection_id,
+      b.runner_name,
+      b.runner_type,
+      b.back_or_lay,
+      b.bet_amount,
+      b.selection_odds,
+      b.created_at,
+      b.status,
+      b.bet_won,
+      b.returned_amount
+    FROM bets b
+    WHERE b.bettor_id = ?
+  `;
+  
+  const queryParams = [bettorId];
+  
+  if (status !== 'ALL') {
+    query += ` AND b.status = ?`;
+    queryParams.push(status);
+  }
+  
+  query += ` ORDER BY b.created_at DESC`;
+  
+  betsDb.all(query, queryParams, (err, bets) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
+    
+    // For each bet, get the match information from the fixtures database
+    const betsWithMatches = [];
+    let processed = 0;
+    
+    if (bets.length === 0) {
+      res.json({ bettor_id: bettorId, bets: [] });
+      return;
+    }
+    
+    bets.forEach(bet => {
+      const matchQuery = `
+        SELECT 
+          f.match_id,
+          f.matchday,
+          f.date,
+          f.time,
+          f.home_team,
+          f.away_team,
+          f.status as match_status
+        FROM fixtures f
+        WHERE f.match_id = ?
+      `;
+      
+      db.get(matchQuery, [bet.match_id], (matchErr, match) => {
+        processed++;
+        
+        const betWithMatch = { 
+          ...bet,
+          match: match || null
+        };
+        
+        betsWithMatches.push(betWithMatch);
+        
+        // If all bets processed, send response
+        if (processed === bets.length) {
+          // Sort by creation date (most recent first)
+          betsWithMatches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          
+          res.json({
+            bettor_id: bettorId,
+            bets: betsWithMatches
+          });
+        }
+      });
+    });
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
@@ -359,7 +489,15 @@ process.on('SIGINT', () => {
       } else {
         console.log('✅ Odds database connection closed');
       }
-      process.exit(0);
+      
+      betsDb.close((betsErr) => {
+        if (betsErr) {
+          console.error('Error closing bets database:', betsErr);
+        } else {
+          console.log('✅ Bets database connection closed');
+        }
+        process.exit(0);
+      });
     });
   });
 });

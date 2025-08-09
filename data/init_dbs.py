@@ -23,7 +23,7 @@ def init_odds_database(db_path: str):
     cursor.execute(
         """
         CREATE TABLE matches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER NOT NULL,
             event_id TEXT UNIQUE NOT NULL,
             market_id TEXT NOT NULL,
             home_team TEXT NOT NULL,
