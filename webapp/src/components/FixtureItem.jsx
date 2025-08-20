@@ -78,6 +78,12 @@ const FixtureItem = ({ fixture }) => {
         <div className="fixture-teams">
           {cleanTeamName(fixture.home_team)} vs {cleanTeamName(fixture.away_team)}
         </div>
+        {fixture.status?.toUpperCase() === 'FINISHED' && 
+         fixture.home_score !== null && fixture.away_score !== null && (
+          <div className="fixture-result">
+            {fixture.home_score} - {fixture.away_score}
+          </div>
+        )}
         {getVenueName(fixture.venue) && (
           <div className="fixture-venue">
             @ {getVenueName(fixture.venue)}

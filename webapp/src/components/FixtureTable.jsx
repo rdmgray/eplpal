@@ -144,7 +144,10 @@ const FixtureTable = ({ fixtures }) => {
                 </div>
               </td>
               <td className="vs-cell">
-                v
+                {fixture.status?.toUpperCase() === 'FINISHED' && 
+                 fixture.home_score !== null && fixture.away_score !== null ? 
+                  `${fixture.home_score}-${fixture.away_score}` : 'v'
+                }
               </td>
               <td className="team-cell away-team">
                 <div className="team-with-crest">

@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """
-Premier League 2025-26 Fixtures Database Creator
+Premier League 2025-26 Fixtures Database Manager
 
 This script downloads fixture data for the 2025-26 Premier League season
-and stores it in a SQLite database.
+and stores it in a SQLite database. It can also update existing fixtures
+with the latest results and changes.
+
+Usage:
+    python premier_league_fixtures.py                    # Create new database
+    python premier_league_fixtures.py --update           # Update existing fixtures
+    python premier_league_fixtures.py --db-path path/to/db.db --update  # Custom db path
 """
 
 import sqlite3
@@ -12,6 +18,7 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional
 import os
+import argparse
 from dotenv import load_dotenv
 
 
@@ -198,29 +205,157 @@ class PremierLeagueFixtures:
         conn.close()
         print(f"Inserted {len(fixtures)} fixtures into database")
 
-    def run(self) -> None:
-        """Main execution method"""
-        print("Creating Premier League 2025-26 fixtures database...")
-
-        # Create database
-        self.create_database()
-
-        # Try to get data from API
+    def update_fixtures_with_results(self) -> None:
+        """Update existing fixtures with latest data including results"""
+        print("Updating fixtures with latest data and results...")
+        
+        # Get latest fixture data from API
         fixtures = self.get_premier_league_fixtures()
-        teams = self.get_premier_league_teams()
+        if not fixtures:
+            print("No fixture data retrieved, skipping updates")
+            return
 
-        # Insert data
-        if teams:
-            self.insert_teams(teams)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        updated_count = 0
+        new_count = 0
+        
+        for fixture in fixtures:
+            match_id = fixture.get("id")
+            
+            # Check if fixture exists in database
+            cursor.execute("SELECT match_id, home_score, away_score, status, date, time FROM fixtures WHERE match_id = ?", (match_id,))
+            existing = cursor.fetchone()
+            
+            # Parse new data
+            utc_date = fixture.get("utcDate", "")
+            date_part = utc_date.split("T")[0] if utc_date else ""
+            time_part = utc_date.split("T")[1].replace("Z", "") if "T" in utc_date else ""
+            
+            home_team = fixture.get("homeTeam", {})
+            away_team = fixture.get("awayTeam", {})
+            score = fixture.get("score", {}).get("fullTime", {})
+            new_home_score = score.get("home") if score else None
+            new_away_score = score.get("away") if score else None
+            new_status = fixture.get("status")
+            
+            if existing:
+                # Check if anything has changed
+                old_match_id, old_home_score, old_away_score, old_status, old_date, old_time = existing
+                
+                changes_detected = (
+                    old_home_score != new_home_score or
+                    old_away_score != new_away_score or 
+                    old_status != new_status or
+                    old_date != date_part or
+                    old_time != time_part
+                )
+                
+                if changes_detected:
+                    # Update the existing fixture
+                    cursor.execute(
+                        """
+                        UPDATE fixtures SET 
+                            matchday = ?, date = ?, time = ?, home_team = ?, away_team = ?,
+                            home_team_id = ?, away_team_id = ?, status = ?, venue = ?,
+                            home_score = ?, away_score = ?, updated_at = ?
+                        WHERE match_id = ?
+                        """,
+                        (
+                            fixture.get("matchday"),
+                            date_part,
+                            time_part,
+                            home_team.get("name"),
+                            away_team.get("name"),
+                            home_team.get("id"),
+                            away_team.get("id"),
+                            new_status,
+                            fixture.get("venue"),
+                            new_home_score,
+                            new_away_score,
+                            datetime.now().isoformat(),
+                            match_id
+                        ),
+                    )
+                    updated_count += 1
+                    
+                    # Log what changed
+                    changes = []
+                    if old_home_score != new_home_score or old_away_score != new_away_score:
+                        old_score = f"{old_home_score or '-'}-{old_away_score or '-'}"
+                        new_score = f"{new_home_score or '-'}-{new_away_score or '-'}"
+                        changes.append(f"score: {old_score} -> {new_score}")
+                    if old_status != new_status:
+                        changes.append(f"status: {old_status} -> {new_status}")
+                    if old_date != date_part:
+                        changes.append(f"date: {old_date} -> {date_part}")
+                    if old_time != time_part:
+                        changes.append(f"time: {old_time} -> {time_part}")
+                    
+                    print(f"  Updated {home_team.get('name')} vs {away_team.get('name')}: {', '.join(changes)}")
+            else:
+                # Insert new fixture
+                cursor.execute(
+                    """
+                    INSERT INTO fixtures 
+                    (match_id, matchday, date, time, home_team, away_team, 
+                     home_team_id, away_team_id, status, venue, 
+                     home_score, away_score, season, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        match_id,
+                        fixture.get("matchday"),
+                        date_part,
+                        time_part,
+                        home_team.get("name"),
+                        away_team.get("name"),
+                        home_team.get("id"),
+                        away_team.get("id"),
+                        new_status,
+                        fixture.get("venue"),
+                        new_home_score,
+                        new_away_score,
+                        "2025-26",
+                        datetime.now().isoformat(),
+                    ),
+                )
+                new_count += 1
+                print(f"  Added new fixture: {home_team.get('name')} vs {away_team.get('name')}")
 
-        if fixtures:
-            self.insert_fixtures(fixtures)
+        conn.commit()
+        conn.close()
+        
+        print(f"Update complete: {updated_count} fixtures updated, {new_count} new fixtures added")
 
-        print(f"Database created successfully: {self.db_path}")
-        print("You can now query the database using SQL or Python sqlite3 module")
+    def run(self, update_only: bool = False) -> None:
+        """Main execution method"""
+        if update_only:
+            print("Updating Premier League 2025-26 fixtures with latest results...")
+            self.update_fixtures_with_results()
+        else:
+            print("Creating Premier League 2025-26 fixtures database...")
 
-        # Display sample query
-        self.show_sample_queries()
+            # Create database
+            self.create_database()
+
+            # Try to get data from API
+            fixtures = self.get_premier_league_fixtures()
+            teams = self.get_premier_league_teams()
+
+            # Insert data
+            if teams:
+                self.insert_teams(teams)
+
+            if fixtures:
+                self.insert_fixtures(fixtures)
+
+            print(f"Database created successfully: {self.db_path}")
+            print("You can now query the database using SQL or Python sqlite3 module")
+
+            # Display sample query
+            self.show_sample_queries()
 
     def show_sample_queries(self) -> None:
         """Show sample queries to demonstrate the database"""
@@ -257,6 +392,14 @@ class PremierLeagueFixtures:
 
 
 if __name__ == "__main__":
-    # Create the fixtures database
-    fixtures_db = PremierLeagueFixtures()
-    fixtures_db.run()
+    parser = argparse.ArgumentParser(description='Premier League Fixtures Database Manager')
+    parser.add_argument('--update', action='store_true', 
+                       help='Update existing fixtures with latest results instead of creating new database')
+    parser.add_argument('--db-path', default='premier_league_2025_26.db',
+                       help='Path to the database file (default: premier_league_2025_26.db)')
+    
+    args = parser.parse_args()
+    
+    # Create the fixtures database manager
+    fixtures_db = PremierLeagueFixtures(args.db_path)
+    fixtures_db.run(update_only=args.update)

@@ -200,10 +200,24 @@ const FixtureDetail = () => {
           </div>
 
           <div className="fixture-detail-vs">
-            <div className="vs-text">vs</div>
-            <div className={`fixture-detail-status ${getStatusClass(fixture.status)}`}>
-              {getStatusText(fixture.status)}
-            </div>
+            {fixture.status?.toUpperCase() === 'FINISHED' && 
+             fixture.home_score !== null && fixture.away_score !== null ? (
+              <div className="fixture-detail-result">
+                <div className="result-score">
+                  {fixture.home_score} - {fixture.away_score}
+                </div>
+                <div className={`fixture-detail-status ${getStatusClass(fixture.status)}`}>
+                  {getStatusText(fixture.status)}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="vs-text">vs</div>
+                <div className={`fixture-detail-status ${getStatusClass(fixture.status)}`}>
+                  {getStatusText(fixture.status)}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="fixture-detail-team away-team">
@@ -234,7 +248,7 @@ const FixtureDetail = () => {
         {fixture.odds && (
           <div className="fixture-detail-odds">
             <div className="fixture-detail-odds-header">
-              <h3>Latest Odds</h3>
+              <h3>{fixture.status?.toUpperCase() === 'FINISHED' ? 'Final Latest Odds' : 'Latest Odds'}</h3>
             </div>
             <div className="fixture-detail-odds-grid">
               <div className="fixture-detail-odds-item home-win">

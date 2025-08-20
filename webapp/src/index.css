@@ -175,6 +175,16 @@ body {
   font-weight: 400;
 }
 
+.fixture-result {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-color);
+  background: rgba(0, 122, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
 .fixture-status {
   padding: 4px 8px;
   border-radius: 6px;
@@ -362,6 +372,14 @@ body {
     background-color: #7f1d1d;
     color: #fca5a5;
   }
+  
+  .fixture-result {
+    background: rgba(0, 122, 255, 0.2);
+  }
+  
+  .result-score {
+    background: rgba(0, 122, 255, 0.2);
+  }
 }
 
 /* Table Styles */
@@ -471,11 +489,12 @@ body {
 }
 
 .vs-cell {
-  width: 30px;
+  width: 50px;
   text-align: center;
   font-weight: 600;
   color: var(--text-secondary);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .status-cell {
@@ -784,6 +803,23 @@ body {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-secondary);
+}
+
+.fixture-detail-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.result-score {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary-color);
+  background: rgba(0, 122, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 8px;
+  letter-spacing: 2px;
 }
 
 .fixture-detail-status {
