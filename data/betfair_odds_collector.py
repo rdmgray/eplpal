@@ -211,13 +211,20 @@ class OddsDatabase:
         query_home_team = team_name_mapping_sl[home_team]
         query_away_team = team_name_mapping_sl[away_team]
 
-        with closing(sqlite3.connect("/Users/rdmgray/Projects/EPLpal/data/premier_league_2025_26.db")) as fixtures_db_conn:
+        with closing(
+            sqlite3.connect(
+                "/Users/rdmgray/Projects/EPLpal/data/premier_league_2025_26.db"
+            )
+        ) as fixtures_db_conn:
             with closing(fixtures_db_conn.cursor()) as fixtures_cursor:
-                fixtures_cursor.execute('''
+                fixtures_cursor.execute(
+                    """
                             select match_id from fixtures
                             where home_team = ?
                             and away_team = ?
-                ''', (query_home_team, query_away_team))
+                """,
+                    (query_home_team, query_away_team),
+                )
                 match_id = fixtures_cursor.fetchone()
             fixtures_db_conn.commit()
 

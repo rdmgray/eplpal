@@ -8,6 +8,12 @@ class BookmakerSimulator:
     def __init__(self):
         self.odds_db_path = "/Users/rdmgray/Projects/EPLpal/data/premier_league_odds.db"
         self.bets_db_path = "/Users/rdmgray/Projects/EPLpal/data/sim_bets.db"
+        self.fixtures_db_path = (
+            "/Users/rdmgray/Projects/EPLpal/data/premier_league_2025_26.db"
+        )
+
+        self.odds = self.get_latest_odds()
+        self.fixtures = self.get_all_fixtures()
 
     def get_latest_odds(self):
         with closing(sqlite3.connect(bs.odds_db_path)) as odds_db_conn:
@@ -19,9 +25,14 @@ class BookmakerSimulator:
         return odds
 
     def get_all_bets(self):
-        with closing(sqlite3.connect(bs.bets_db_path)) as odds_db_conn:
-            bets = pd.read_sql_query("SELECT * from bets", odds_db_conn)
+        with closing(sqlite3.connect(bs.bets_db_path)) as bets_db_conn:
+            bets = pd.read_sql_query("SELECT * from bets", bets_db_conn)
         return bets
+
+    def get_all_fixtures(self):
+        with closing(sqlite3.connect(bs.fixtures_db_path)) as fixtures_db_conn:
+            fixtures = pd.read_sql_query("SELECT * from fixtures", fixtures_db_conn)
+        return fixtures
 
     def place_bet(
         self,
@@ -31,12 +42,11 @@ class BookmakerSimulator:
         back_or_lay: str,
         bet_amount: float,
     ):
-        odds = self.get_latest_odds()
 
         # Check the validity
         assert (
             selection_id
-            in odds.loc[odds["match_id"] == match_id, "selection_id"].values
+            in self.odds.loc[self.odds["match_id"] == match_id, "selection_id"].values
         ), f"Invalid selection_id {selection_id} for match_id {match_id}."
 
         assert (
@@ -45,30 +55,36 @@ class BookmakerSimulator:
 
         # Get selection odds
         if back_or_lay == "BACK":
-            selection_odds = odds.loc[
+            selection_odds = self.odds.loc[
                 (
-                    (odds["selection_id"] == selection_id)
-                    & (odds["match_id"] == match_id)
+                    (self.odds["selection_id"] == selection_id)
+                    & (self.odds["match_id"] == match_id)
                 ),
                 "best_back_price",
             ].values[0]
         elif back_or_lay == "LAY":
-            selection_odds = odds.loc[
+            selection_odds = self.odds.loc[
                 (
-                    (odds["selection_id"] == selection_id)
-                    & (odds["match_id"] == match_id)
+                    (self.odds["selection_id"] == selection_id)
+                    & (self.odds["match_id"] == match_id)
                 ),
                 "best_lay_price",
             ].values[0]
         else:
             return f"Invalid value for back_or_lay, choose BACK or LAY."
 
-        runner_name = odds.loc[
-            ((odds["selection_id"] == selection_id) & (odds["match_id"] == match_id)),
+        runner_name = self.odds.loc[
+            (
+                (self.odds["selection_id"] == selection_id)
+                & (self.odds["match_id"] == match_id)
+            ),
             "runner_name",
         ].values[0]
-        runner_type = odds.loc[
-            ((odds["selection_id"] == selection_id) & (odds["match_id"] == match_id)),
+        runner_type = self.odds.loc[
+            (
+                (self.odds["selection_id"] == selection_id)
+                & (self.odds["match_id"] == match_id)
+            ),
             "runner_type",
         ].values[0]
 
@@ -126,17 +142,16 @@ class BookmakerSimulator:
         return bet_id
 
     def resolve_bets(self, match_id, winning_selection_id):
-        odds = self.get_latest_odds()
 
         # Check the validity
         assert (
             winning_selection_id
-            in odds.loc[odds["match_id"] == match_id, "selection_id"].values
+            in self.odds.loc[self.odds["match_id"] == match_id, "selection_id"].values
         ), f"Invalid selection_id {winning_selection_id} for match_id {match_id}."
 
-        runner_outcome = odds.loc[
-            (odds["match_id"] == match_id)
-            & (odds["selection_id"] == winning_selection_id),
+        runner_outcome = self.odds.loc[
+            (self.odds["match_id"] == match_id)
+            & (self.odds["selection_id"] == winning_selection_id),
             "runner_type",
         ].values[0]
         # Winning back bets
@@ -168,7 +183,7 @@ class BookmakerSimulator:
                 cursor.execute(
                     """
                             UPDATE bets 
-                            SET status = "SETTLED", runner_outcome = ?, bet_won = true, returned_amount = -bet_amount
+                            SET status = "SETTLED", runner_outcome = ?, bet_won = true, returned_amount = bet_amount
                             where match_id = ?
                             AND selection_id <> ?
                             AND back_or_lay = "LAY"
@@ -179,7 +194,7 @@ class BookmakerSimulator:
                 cursor.execute(
                     """
                             UPDATE bets 
-                            SET status = "SETTLED", runner_outcome = ?, bet_won = false, returned_amount = bet_amount * (selection_odds - 1)
+                            SET status = "SETTLED", runner_outcome = ?, bet_won = false, returned_amount = -bet_amount * (selection_odds - 1)
                             where match_id = ?
                             AND selection_id = ?
                             AND back_or_lay = "LAY"
@@ -187,3 +202,28 @@ class BookmakerSimulator:
                     (runner_outcome, match_id, winning_selection_id),
                 )
             bets_db_conn.commit()
+
+    def resolve_all(self):
+        finished = self.fixtures[self.fixtures["status"] == "FINISHED"].copy()
+
+        for i, fixture in finished.iterrows():
+            match_id = fixture["match_id"]
+            if fixture["home_score"] > fixture["away_score"]:
+                winning_outcome = "Home win"
+            elif fixture["away_score"] > fixture["home_score"]:
+                winning_outcome = "Away win"
+            else:
+                winning_outcome = "Draw"
+
+            winning_selection_id = self.odds.loc[
+                (self.odds["match_id"] == match_id)
+                & (self.odds["runner_type"] == winning_outcome),
+                "selection_id",
+            ].values[0]
+
+            self.resolve_bets(match_id, winning_selection_id)
+
+
+if __name__ == "__main__":
+    bs = BookmakerSimulator()
+    bs.resolve_all()
