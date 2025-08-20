@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getTeamCrest } from '../utils/teamCrestMapping'
 import LoadingSpinner from './LoadingSpinner'
 import ErrorMessage from './ErrorMessage'
+import OddsHistory from './OddsHistory'
 
 const FixtureDetail = () => {
   const { matchId } = useParams()
@@ -252,6 +253,8 @@ const FixtureDetail = () => {
           </div>
         )}
       </div>
+
+      <OddsHistory matchId={matchId} />
     </div>
   )
 }

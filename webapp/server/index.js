@@ -453,6 +453,94 @@ app.get('/api/bets/:bettorId', (req, res) => {
   });
 });
 
+// Get odds history for a specific fixture
+app.get('/api/fixture/:matchId/odds-history', (req, res) => {
+  const matchId = parseInt(req.params.matchId);
+  
+  // First get fixture details
+  const fixtureQuery = `
+    SELECT 
+      f.home_team,
+      f.away_team
+    FROM fixtures f
+    WHERE f.match_id = ?
+  `;
+  
+  db.get(fixtureQuery, [matchId], (err, fixture) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
+    
+    if (!fixture) {
+      res.status(404).json({ error: 'Fixture not found' });
+      return;
+    }
+    
+    // Map team names and get odds history
+    const mappedHomeName = mapTeamName(fixture.home_team);
+    const mappedAwayName = mapTeamName(fixture.away_team);
+    
+    const oddsHistoryQuery = `
+      SELECT 
+        o.runner_type,
+        o.best_back_price,
+        o.best_lay_price,
+        o.last_price_traded,
+        o.total_matched,
+        o.request_time
+      FROM matches m
+      JOIN odds o ON m.id = o.match_id
+      WHERE m.home_team = ? AND m.away_team = ?
+      ORDER BY o.request_time ASC, o.runner_type
+    `;
+    
+    oddsDb.all(oddsHistoryQuery, [mappedHomeName, mappedAwayName], (oddsErr, oddsRows) => {
+      if (oddsErr) {
+        console.error('Odds database error:', oddsErr);
+        res.status(500).json({ error: 'Odds database error' });
+        return;
+      }
+      
+      // Group odds by timestamp and runner type
+      const historyByTime = {};
+      
+      oddsRows.forEach(row => {
+        if (!historyByTime[row.request_time]) {
+          historyByTime[row.request_time] = {};
+        }
+        
+        const runnerKey = row.runner_type === 'Home win' ? 'home_win' :
+                         row.runner_type === 'Away win' ? 'away_win' :
+                         'draw';
+        
+        historyByTime[row.request_time][runnerKey] = {
+          back_price: row.best_back_price,
+          lay_price: row.best_lay_price,
+          last_traded: row.last_price_traded,
+          total_matched: row.total_matched
+        };
+      });
+      
+      // Convert to array format sorted by time
+      const history = Object.entries(historyByTime)
+        .map(([timestamp, odds]) => ({
+          timestamp,
+          odds
+        }))
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      
+      res.json({
+        match_id: matchId,
+        home_team: fixture.home_team,
+        away_team: fixture.away_team,
+        history
+      });
+    });
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
