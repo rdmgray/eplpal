@@ -561,6 +561,16 @@ body {
   color: #7b1fa2;
 }
 
+.status-badge.settled {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.status-badge.unknown {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
 /* Responsive table */
 @media (max-width: 768px) {
   .container {
@@ -1369,6 +1379,63 @@ body {
   .odds-cell {
     min-width: 60px;
   }
+  
+  .bets-summary {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .summary-item {
+    min-width: auto;
+  }
+}
+
+/* Bets Summary */
+.bets-summary {
+  background: var(--background-color);
+  border-radius: var(--border-radius-small);
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  border: 1px solid var(--separator-color);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  min-width: 120px;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.summary-value.profit {
+  color: #34c759;
+}
+
+.summary-value.loss {
+  color: #ff3b30;
 }
 
 /* Dark mode bets page */
@@ -1395,6 +1462,16 @@ body {
   .back-lay-indicator.lay-bet {
     background-color: #7f1d1d;
     color: #fca5a5;
+  }
+  
+  .status-badge.settled {
+    background-color: #14532d;
+    color: #4ade80;
+  }
+  
+  .status-badge.unknown {
+    background-color: #3a3a3c;
+    color: #8e8e93;
   }
 }
 

@@ -8,7 +8,7 @@ const BetsPage = () => {
   const [bettors, setBettors] = useState([])
   const [statuses, setStatuses] = useState([])
   const [currentBettorId, setCurrentBettorId] = useState(0)
-  const [currentStatus, setCurrentStatus] = useState('PLACED')
+  const [currentStatus, setCurrentStatus] = useState('ALL')
   const [bets, setBets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -125,8 +125,9 @@ const BetsPage = () => {
   }
 
   const formatAmount = (amount) => {
-    if (!amount) return 'N/A'
-    return `£${parseFloat(amount).toFixed(2)}`
+    if (amount === null || amount === undefined) return 'N/A'
+    const value = parseFloat(amount)
+    return `£${value.toFixed(2)}`
   }
 
   const formatOdds = (odds) => {
@@ -151,6 +152,20 @@ const BetsPage = () => {
       home: getTeamCrest(bet.match.home_team),
       away: getTeamCrest(bet.match.away_team)
     }
+  }
+
+  const calculateTotalReturns = () => {
+    return bets.reduce((total, bet) => {
+      const returnAmount = bet.returned_amount || 0
+      return total + parseFloat(returnAmount)
+    }, 0)
+  }
+
+  const calculateTotalStaked = () => {
+    return bets.reduce((total, bet) => {
+      const betAmount = bet.bet_amount || 0
+      return total + parseFloat(betAmount)
+    }, 0)
   }
 
   return (
@@ -227,8 +242,25 @@ const BetsPage = () => {
                 <p>Bettor {currentBettorId} has no {currentStatus.toLowerCase()} bets.</p>
               </div>
             ) : (
-              <div className="bets-table">
-                <table className="fixtures-table">
+              <>
+                <div className="bets-summary">
+                  <div className="summary-item">
+                    <span className="summary-label">Total Staked:</span>
+                    <span className="summary-value">{formatAmount(calculateTotalStaked())}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span className="summary-label">Total Returns:</span>
+                    <span className="summary-value">{formatAmount(calculateTotalReturns())}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span className="summary-label">Net Profit/Loss:</span>
+                    <span className={`summary-value ${calculateTotalReturns() - calculateTotalStaked() >= 0 ? 'profit' : 'loss'}`}>
+                      {formatAmount(calculateTotalReturns() - calculateTotalStaked())}
+                    </span>
+                  </div>
+                </div>
+                <div className="bets-table">
+                  <table className="fixtures-table">
                   <thead>
                     <tr>
                       <th>Match</th>
@@ -239,6 +271,8 @@ const BetsPage = () => {
                       <th>Back/Lay</th>
                       <th>Amount</th>
                       <th>Odds</th>
+                      <th>Status</th>
+                      <th>Returns</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -310,12 +344,21 @@ const BetsPage = () => {
                           <td className="odds-cell">
                             {formatOdds(bet.selection_odds)}
                           </td>
+                          <td className="status-cell">
+                            <span className={`status-badge ${bet.status?.toLowerCase() || 'unknown'}`}>
+                              {bet.status || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="amount-cell">
+                            {formatAmount(bet.returned_amount)}
+                          </td>
                         </tr>
                       )
                     })}
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         </div>
